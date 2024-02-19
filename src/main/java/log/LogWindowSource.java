@@ -2,88 +2,144 @@ package log;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
 
 /**
- * Что починить:
- * 1. Этот класс порождает утечку ресурсов (связанные слушатели оказываются
- * удерживаемыми в памяти)
- * 2. Этот класс хранит активные сообщения лога, но в такой реализации он 
- * их лишь накапливает. Надо же, чтобы количество сообщений в логе было ограничено 
- * величиной m_iQueueLength (т.е. реально нужна очередь сообщений 
- * ограниченного размера) 
+ * Представляет источник сообщений для окна протокола.
  */
-public class LogWindowSource
-{
-    private int m_iQueueLength;
-    
-    private ArrayList<LogEntry> m_messages;
-    private final ArrayList<LogChangeListener> m_listeners;
-    private volatile LogChangeListener[] m_activeListeners;
-    
-    public LogWindowSource(int iQueueLength) 
-    {
+public class LogWindowSource {
+
+    /**
+     * Максимальная длина очереди сообщений в логе.
+     */
+    private final int m_iQueueLength;
+
+
+    /**
+     * Список сообщений лога.
+     */
+
+    private final LinkedList<LogEntry> m_messages;
+
+
+    /**
+     * Список слушателей изменений лога.
+     */
+    private final List<LogChangeListener> m_listeners;
+
+
+    /**
+     * Создает новый источник сообщений для окна протокола с указанным размером очереди.
+     *
+     * @param iQueueLength Максимальный размер очереди сообщений.
+     */
+    public LogWindowSource(int iQueueLength) {
         m_iQueueLength = iQueueLength;
-        m_messages = new ArrayList<LogEntry>(iQueueLength);
-        m_listeners = new ArrayList<LogChangeListener>();
+        m_messages = new LinkedList<>();
+        m_listeners = new ArrayList<>();
     }
-    
-    public void registerListener(LogChangeListener listener)
-    {
-        synchronized(m_listeners)
-        {
+
+
+    /**
+     * Регистрирует слушателя для получения уведомлений об изменениях в протоколе.
+     *
+     * @param listener Слушатель изменений в протоколе.
+     */
+    public void registerListener(LogChangeListener listener) {
+        synchronized (m_listeners) {
             m_listeners.add(listener);
-            m_activeListeners = null;
         }
     }
-    
-    public void unregisterListener(LogChangeListener listener)
-    {
-        synchronized(m_listeners)
-        {
+
+
+    /**
+     * Удаляет слушателя, чтобы он перестал получать уведомления об изменениях в протоколе.
+     *
+     * @param listener Слушатель изменений в протоколе.
+     */
+    public void unregisterListener(LogChangeListener listener) {
+        synchronized (m_listeners) {
             m_listeners.remove(listener);
-            m_activeListeners = null;
         }
     }
-    
-    public void append(LogLevel logLevel, String strMessage)
-    {
+
+
+    /**
+     * Добавляет новую запись в протокол с указанным уровнем и сообщением.
+     *
+     * @param logLevel    Уровень протоколирования.
+     * @param strMessage  Сообщение для записи в протокол.
+     */
+    public void append(LogLevel logLevel, String strMessage) {
         LogEntry entry = new LogEntry(logLevel, strMessage);
-        m_messages.add(entry);
-        LogChangeListener [] activeListeners = m_activeListeners;
-        if (activeListeners == null)
-        {
-            synchronized (m_listeners)
-            {
-                if (m_activeListeners == null)
-                {
-                    activeListeners = m_listeners.toArray(new LogChangeListener [0]);
-                    m_activeListeners = activeListeners;
-                }
+        synchronized (m_messages) {
+            if (m_messages.size() >= m_iQueueLength) {
+                m_messages.removeFirst(); // Удаляем самое старое сообщение
             }
+            m_messages.addLast(entry);
         }
-        for (LogChangeListener listener : activeListeners)
-        {
+        notifyListeners();
+    }
+
+
+    /**
+     * Уведомляет всех зарегистрированных слушателей об изменении лога.
+     * Создается копия списка слушателей для безопасной итерации, чтобы избежать
+     * ошибок синхронизации и предотвратить изменение списка во время итерации.
+     */
+    private void notifyListeners() {
+        List<LogChangeListener> activeListeners;
+        synchronized (m_listeners) {
+            activeListeners = new ArrayList<>(m_listeners);
+        }
+        for (LogChangeListener listener : activeListeners) {
             listener.onLogChanged();
         }
     }
-    
-    public int size()
-    {
-        return m_messages.size();
-    }
 
-    public Iterable<LogEntry> range(int startFrom, int count)
-    {
-        if (startFrom < 0 || startFrom >= m_messages.size())
-        {
-            return Collections.emptyList();
+
+    /**
+     * Возвращает текущее количество сообщений в протоколе.
+     *
+     * @return Количество сообщений в протоколе.
+     */
+    public int size() {
+        synchronized (m_messages) {
+            return m_messages.size();
         }
-        int indexTo = Math.min(startFrom + count, m_messages.size());
-        return m_messages.subList(startFrom, indexTo);
     }
 
-    public Iterable<LogEntry> all()
-    {
-        return m_messages;
+
+    /**
+     * Возвращает итератор, который перечисляет сообщения протокола, начиная с указанного индекса
+     * и не более указанного количества.
+     *
+     * @param startFrom Начальный индекс для перечисления сообщений.
+     * @param count     Максимальное количество сообщений для перечисления.
+     * @return Итератор, перечисляющий сообщения протокола.
+     */
+    public Iterable<LogEntry> range(int startFrom, int count) {
+        synchronized (m_messages) {
+            if (startFrom < 0 || startFrom >= m_messages.size()) {
+                return Collections.emptyList();
+            }
+            int indexTo = Math.min(startFrom + count, m_messages.size());
+            return new ArrayList<>(m_messages.subList(startFrom, indexTo));
+        }
+    }
+
+
+    /**
+     * Возвращает итератор, который перечисляет все сообщения протокола.
+     *
+     * @return Итератор, перечисляющий все сообщения протокола.
+     */
+    public Iterable<LogEntry> all() {
+        synchronized (m_messages) {
+            return new ArrayList<>(m_messages);
+        }
     }
 }
+

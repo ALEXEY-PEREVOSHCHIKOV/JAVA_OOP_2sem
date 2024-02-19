@@ -11,12 +11,27 @@ import java.util.Locale;
 import javax.swing.*;
 import log.Logger;
 
+/**
+ * Главное окно приложения, наследующее JFrame и реализующее интерфейс Serializable.
+ */
 public class MainApplicationFrame extends JFrame  implements Serializable {
 
+
+    /**
+     * Рабочая область для внутренних окон
+     */
     private final JDesktopPane desktopPane = new JDesktopPane();
 
+
+    /**
+     * Номер версии класса для сохранения состояния
+     */
     private static final long serialVersionUID = 1L;
 
+
+    /**
+     * Новый экземпляр главного окна приложения.
+     */
     public MainApplicationFrame() {
         int inset = 50;
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -31,11 +46,16 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         addWindow(gameWindow);
 
         setJMenuBar(generateMenuBar());
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Не закрывать приложение, нажимая на "крестик"
 
-        addWindowListener(new ConfirmExitWindowListener());
+        addWindowListener(new ConfirmExitWindowListener()); //обработчик событий закрытия окна
     }
 
+
+    /**
+     * Создает и возвращает окно журнала.
+     * @return Окно журнала.
+     */
     protected LogWindow createLogWindow() {
         LogWindow logWindow = new LogWindow(Logger.getDefaultLogSource());
         logWindow.setLocation(10, 10);
@@ -46,19 +66,34 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         return logWindow;
     }
 
+
+    /**
+     * Добавляет внутреннее окно на рабочую область.
+     * @param frame Внутреннее окно для добавления.
+     */
     protected void addWindow(JInternalFrame frame) {
         desktopPane.add(frame);
         frame.setVisible(true);
     }
 
+
+    /**
+     * Генерирует и возвращает меню приложения.
+     * @return Меню приложения.
+     */
     private JMenuBar generateMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         addLookAndFeelMenu(menuBar);
         addTestMenu(menuBar);
-        addSettingsMenu(menuBar);
+        addSettingsMenu(menuBar); // меню "Настройки"
         return menuBar;
     }
 
+
+    /**
+     * Добавляет в меню приложения пункт "Режим отображения".
+     * @param menuBar Меню приложения.
+     */
     private void addLookAndFeelMenu(JMenuBar menuBar) {
         JMenu lookAndFeelMenu = new JMenu("Режим отображения");
         lookAndFeelMenu.setMnemonic(KeyEvent.VK_V);
@@ -68,6 +103,12 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         menuBar.add(lookAndFeelMenu);
     }
 
+
+    /**
+     * Добавляет в меню отображения пункт "Системная схема".
+     * При выборе данного пункта меняет внешний вид приложения на системную схему.
+     * @param lookAndFeelMenu Меню отображения.
+     */
     private void addSystemLookAndFeelMenuItem(JMenu lookAndFeelMenu) {
         JMenuItem systemLookAndFeel = new JMenuItem("Системная схема", KeyEvent.VK_S);
         systemLookAndFeel.addActionListener((event) -> {
@@ -77,6 +118,12 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         lookAndFeelMenu.add(systemLookAndFeel);
     }
 
+
+    /**
+     * Добавляет в меню отображения пункт "Универсальная схема".
+     * При выборе данного пункта меняет внешний вид приложения на универсальную схему.
+     * @param lookAndFeelMenu Меню отображения.
+     */
     private void addCrossPlatformLookAndFeelMenuItem(JMenu lookAndFeelMenu) {
         JMenuItem crossplatformLookAndFeel = new JMenuItem("Универсальная схема", KeyEvent.VK_S);
         crossplatformLookAndFeel.addActionListener((event) -> {
@@ -86,6 +133,11 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         lookAndFeelMenu.add(crossplatformLookAndFeel);
     }
 
+
+    /**
+     * Добавляет в меню приложения пункт "Тесты".
+     * @param menuBar Меню приложения.
+     */
     private void addTestMenu(JMenuBar menuBar) {
         JMenu testMenu = new JMenu("Тесты");
         testMenu.setMnemonic(KeyEvent.VK_T);
@@ -94,6 +146,11 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         menuBar.add(testMenu);
     }
 
+
+    /**
+     * Добавляет подпункт "Сообщение в лог" в меню "Тесты".
+     * @param testMenu Меню "Тесты".
+     */
     private void addLogMessageMenuItem(JMenu testMenu) {
         JMenuItem addLogMessageItem = new JMenuItem("Сообщение в лог", KeyEvent.VK_S);
         addLogMessageItem.addActionListener((event) -> {
@@ -102,6 +159,11 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         testMenu.add(addLogMessageItem);
     }
 
+
+    /**
+     * Устанавливает указанный класс внешнего вида LookAndFeel для приложения.
+     * @param className Имя класса внешнего вида LookAndFeel.
+     */
     private void setLookAndFeel(String className) {
         try {
             UIManager.setLookAndFeel(className);
@@ -111,6 +173,11 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         }
     }
 
+
+    /**
+     * Добавляет в меню приложения пункт "Настройки" с подпунктом "Выход".
+     * @param menuBar Меню приложения.
+     */
     private void addSettingsMenu(JMenuBar menuBar) {
         JMenu fileMenu = new JMenu("Настройки");
         fileMenu.setMnemonic(KeyEvent.VK_F);
@@ -123,6 +190,10 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         menuBar.add(fileMenu);
     }
 
+
+    /**
+     * Завершает работу приложения после подтверждения выхода.
+     */
     private void exitApplication() {
         Locale.setDefault(new Locale("ru"));
 
@@ -136,6 +207,10 @@ public class MainApplicationFrame extends JFrame  implements Serializable {
         }
     }
 
+
+    /**
+     * Внутренний класс, обрабатывающий событие закрытия окна приложения.
+     */
     private class ConfirmExitWindowListener extends WindowAdapter {
         @Override
         public void windowClosing(WindowEvent e) {
