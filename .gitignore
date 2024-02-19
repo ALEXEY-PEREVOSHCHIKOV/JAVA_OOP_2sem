@@ -2,5 +2,3 @@
 /robots/.settings
 /robots/bin
 eclipse.bat
-\.idea
-target/classes
