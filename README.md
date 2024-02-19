@@ -1,1 +1,2 @@
-# JAVA_OOP_2sem
+# Robots
+The project to learn OO design concepts and MDI application development in Java
